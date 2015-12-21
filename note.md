@@ -1,5 +1,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 #ext2文件系统学习笔记
+[ext2_fs.h](http://fossies.org/dox/e2fsprogs-1.42.13/ext2__fs_8h.html) 
+[ext3_extent.h](http://fossies.org/dox/e2fsprogs-1.42.13/structext3__extent__header.html) 
 ##文件系统建立(blocksize=1k)
 * 新建一个ext2文件系统
 * dd if=/dev/sda4 of=extfs bs=1k count=64000
@@ -124,8 +126,25 @@ struct ext2_group_desc
 2 通过debugfs 找到inode对应的block位置
 3 dd 读取对应block的内容到临时文件。
 
+##ext4 inode的改变
+>EXT4与EXT2、EXT3等传统Unix文件系统最大的区别在于使用了extents而不是间接块（inefficient indirect block）来标记文件内容。extent相似于NTFS文件系统中的运行(run)，本质上他们指示了组成extent的一系列文件块的起始地址、数量。一个文件可能由多段extent组成，但是EXT4尽可能保证文件连续存放
+
+因为EXT4试用了extent而不是块指向文件的内容，从第40到99这60个字节，用了保存extent信息而不再是块指针(block pointers)
+
+>Bytes 40-41: Magic number
+      42-43: Number of extents
+      44-45: Max number of extents
+      46-47: Depth of tree
+      48-51: Generation ID
+>Bytes 52-55: Logical block number
+      56-57: Number of blocks in extent
+      58-59: Upper 16 bits of physical block address
+      60-63: Lower 32 bits of physical block address
+
+
 ***
 参考：bean 《深入ext2 文件系统》
+[understanding-ext4-part-1-extents](http://computer-forensics.sans.org/blog/2010/12/20/digital-forensics-understanding-ext4-part-1-extents) 
 
 
 
