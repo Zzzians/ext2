@@ -34,9 +34,9 @@ struct dir parsedir()
    return res;
 
 }
-void writeblock(int block,char *buffer)
+void writeblock(int block,char *buffer,int size)
 {fseek(fp,bz*block,SEEK_SET);
- fwrite(buffer,bz,1,fp);
+ fwrite(buffer,size,1,fp);
 }
 int inodeoffset(int inode)
 {int num=inode/ipg;
@@ -70,8 +70,10 @@ void echo(int inode,char *buffer)
  int cnt=itob(blocks,inode);
  int off=inodeoffset(inode);
  fseek(fp,off+4,SEEK_SET);
+ //printf("%s",buffer);
  int i;char sizet[4];
  int size=strlen(buffer);
+ writeblock(blocks[0],buffer,size);
  /*char tmp[4];
  fread(tmp,1,4,fp);
  printf("%X %X",tmp[0],tmp[1]);*/
@@ -81,7 +83,7 @@ void echo(int inode,char *buffer)
 
  }
  fwrite(sizet,1,4,fp);
- writeblock(blocks[0],buffer);
+ 
  //printf("%X %X",blocks[0],off);
 }
 void mkdir(int inode,char *name)
@@ -138,9 +140,11 @@ void backup(int inode)
  FILE *bu=fopen("aa.bak","wb+");
  for(i=0;i<cnt;++i){
    unsigned char buffer[bz];
+   memset(buffer,0,bz);
    if(i==0)fseek(fp,blocks[0]*bz,SEEK_SET);
    else fseek(fp,(blocks[i]-blocks[i-1]-1)*bz,SEEK_CUR);
    fread(buffer,bz,1,fp);
+   printf("%s",buffer);
    fwrite(buffer,bz,1,bu);
 
  }
