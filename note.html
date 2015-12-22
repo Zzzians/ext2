@@ -1,0 +1,556 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <meta charset="utf-8"/>
+  <title>
+   Made with Remarkable!
+  </title>
+  <link href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/styles/github.min.css" rel="stylesheet"/>
+  <style type="text/css">
+   body{font:16px Helvetica,Arial,sans-serif;line-height:1.4;color:#333;word-wrap:break-word;background-color:#fff;padding:10px 15px}strong{font-weight:700}h1{font-size:2em;margin:.67em 0;text-align:center}h2{font-size:1.75em}h3{font-size:1.5em}h4{font-size:1.25em}h1,h2,h3,h4,h5,h6{font-weight:700;position:relative;margin-top:15px;margin-bottom:15px;line-height:1.1}h1,h2{border-bottom:1px solid #eee}hr{height:0;margin:15px 0;overflow:hidden;background:0 0;border:0;border-bottom:1px solid #ddd}a{color:#4183C4}a.absent{color:#c00}ol,ul{padding-left:15px;margin-left:5px}ol{list-style-type:lower-roman}table{padding:0}table tr{border-top:1px solid #ccc;background-color:#fff;margin:0;padding:0}table tr:nth-child(2n){background-color:#aaa}table tr th{font-weight:700;border:1px solid #ccc;text-align:left;margin:0;padding:6px 13px}table tr td{border:1px solid #ccc;text-align:left;margin:0;padding:6px 13px}table tr td :first-child,table tr th :first-child{margin-top:0}table tr td:last-child,table tr th :last-child{margin-bottom:0}img{max-width:100%}code{padding:0 5px;background-color:#d3d3d3}blockquote{padding: 0 15px;border-left:4px solid #ccc}
+  </style>
+ </head>
+ <body>
+  <p>
+   <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+  </p>
+  <h1 id="ext2">
+   ext2文件系统学习笔记
+  </h1>
+  <p>
+   <a href="http://fossies.org/dox/e2fsprogs-1.42.13/ext2__fs_8h.html">
+    ext2_fs.h
+   </a>
+   <br/>
+   <a href="http://fossies.org/dox/e2fsprogs-1.42.13/structext3__extent__header.html">
+    ext3_extent.h
+   </a>
+  </p>
+  <h2 id="blocksize1k">
+   文件系统建立(blocksize=1k)
+  </h2>
+  <ul>
+   <li>
+    新建一个ext2文件系统
+   </li>
+   <li>
+    dd if=/dev/sda4 of=extfs bs=1k count=64000
+   </li>
+   <li>
+    losetup /dev/loop0 ext2fs
+    <blockquote>
+     <p>
+      loop 设备是一种伪设备（pseudo-device），或者也可以说是仿真设备。它能使我们像块设备一样访问一个文件
+     </p>
+    </blockquote>
+   </li>
+   <li>
+    mount -t ext2 /dev/loop0 /mnt/extfs
+   </li>
+   <li>
+    cd /mnt/extfs;mount
+   </li>
+  </ul>
+  <h2 id="_1">
+   超级块
+  </h2>
+  <ul>
+   <li>
+    超级块的backup 保存在第0 , 3
+    <sup>
+     n
+    </sup>
+    ,  5
+    <sup>
+     n
+    </sup>
+    , 7
+    <sup>
+     n
+    </sup>
+    个块组之中
+   </li>
+   <li>
+    超级块信息
+    <blockquote>
+     <p>
+      struct ext2_super_block {
+      <br/>
+      __u32   s_inodes_count;
+      <br/>
+      __u32   s_blocks_count;
+      <br/>
+      __u32   s_r_blocks_count;
+      <br/>
+      __u32   s_free_blocks_count;
+      <br/>
+      __u32   s_free_inodes_count;
+      <br/>
+      __u32   s_first_data_block;
+      <br/>
+      __u32   s_log_block_size;
+      <br/>
+      __u32   s_dummy3[7];
+      <br/>
+      unsigned char s_magic[2];
+      <br/>
+      __u16   s_state;
+      <br/>
+      …
+      <br/>
+      }
+     </p>
+    </blockquote>
+   </li>
+  </ul>
+  <p>
+   (用工具获得超级块信息
+   <code>
+    dumpe2fs /dev/loop0
+   </code>
+   )
+   <br/>
+   第一个块是启动块，从0x400-0x800是超级块。
+  </p>
+  <h2 id="_2">
+   组描述符
+  </h2>
+  <h4 id="kk">
+   <em>
+    所有组的组描述符以数组形式存放在k个块当中，这k个块存放了所有组的组描述符
+   </em>
+  </h4>
+  <blockquote>
+   <p>
+    struct ext2_group_desc
+    <br/>
+    {
+    <br/>
+    __u32 bg_block_bitmap; /
+    <em>
+     Blocks bitmap block
+    </em>
+    /
+    <br/>
+    __u32 bg_inode_bitmap; /
+    <em>
+     Inodes bitmap block
+    </em>
+    /
+    <br/>
+    __u32 bg_inode_table; /
+    <em>
+     Inodes table block
+    </em>
+    /
+    <br/>
+    __u16 bg_free_blocks_count; /
+    <em>
+     Free blocks count
+    </em>
+    /
+    <br/>
+    __u16 bg_free_inodes_count; /
+    <em>
+     Free inodes count
+    </em>
+    /
+    <br/>
+    __u16 bg_used_dirs_count; /
+    <em>
+     Directories count
+    </em>
+    /
+    <br/>
+    __u16 bg_flags;
+    <br/>
+    __u32 bg_exclude_bitmap_lo;/
+    <em>
+     Exclude bitmap for snapshots
+    </em>
+    /
+    <br/>
+    __u16 bg_block_bitmap_csum_lo;/
+    <em>
+     crc32c(s_uuid+grp_num+bitmap)LSB
+    </em>
+    /
+    <br/>
+    __u16 bg_inode_bitmap_csum_lo;/
+    <em>
+     crc32c(s_uuid+grp_num+bitmap)LSB
+    </em>
+    /
+    <br/>
+    __u16 bg_itable_unused; /
+    <em>
+     Unused inodes count
+    </em>
+    /
+    <br/>
+    __u16 bg_checksum; /
+    <em>
+     crc16(s_uuid+grouo_num+group_desc)
+    </em>
+    /
+    <br/>
+    };//total size=0x20
+   </p>
+  </blockquote>
+  <h2 id="block-size">
+   Block size
+  </h2>
+  <blockquote>
+   <p>
+    每一个块组用一个块存放该块组的bitmap，所以最多块数=8*blocksize
+   </p>
+  </blockquote>
+  <table>
+   <thead>
+    <tr>
+     <th>
+      块大小
+     </th>
+     <th>
+      最多块数
+     </th>
+     <th>
+      块组大小
+     </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+     <td>
+      1k
+     </td>
+     <td>
+      8k
+     </td>
+     <td>
+      8M
+     </td>
+    </tr>
+    <tr>
+     <td>
+      2k
+     </td>
+     <td>
+      16k
+     </td>
+     <td>
+      32M
+     </td>
+    </tr>
+    <tr>
+     <td>
+      4k
+     </td>
+     <td>
+      32k
+     </td>
+     <td>
+      128M
+     </td>
+    </tr>
+   </tbody>
+  </table>
+  <blockquote>
+   <p>
+    Inode中有15个指针指向块12个为直接指针，13为间接寻址1的间接指针，14位间接寻址2。。。
+   </p>
+  </blockquote>
+  <table>
+   <thead>
+    <tr>
+     <th>
+      块大小
+     </th>
+     <th>
+      直接寻址
+     </th>
+     <th>
+      间接寻址1
+     </th>
+     <th>
+      间接寻址2
+     </th>
+     <th>
+      间接寻址3
+     </th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+     <td>
+      1k
+     </td>
+     <td>
+      12k
+     </td>
+     <td>
+      0x100k
+     </td>
+     <td>
+      0x10000k
+     </td>
+     <td>
+      0x1000000k
+     </td>
+    </tr>
+    <tr>
+     <td>
+      2k
+     </td>
+     <td>
+      24k
+     </td>
+     <td>
+      4*
+     </td>
+     <td>
+      8*
+     </td>
+     <td>
+      16*
+     </td>
+    </tr>
+    <tr>
+     <td>
+      4k
+     </td>
+     <td>
+      48k
+     </td>
+     <td>
+      4*
+     </td>
+     <td>
+      8*
+     </td>
+     <td>
+      16*
+     </td>
+    </tr>
+   </tbody>
+  </table>
+  <h3 id="bytes-per-inode">
+   Bytes per Inode
+  </h3>
+  <p>
+   期望的每个文件的大小（一个块组可用仅当Inode和block都没有用完的时候）
+  </p>
+  <h2 id="inode">
+   分配Inode
+  </h2>
+  <ul>
+   <li>
+    <p>
+     对于挂载点下第一级目录：
+    </p>
+    <blockquote>
+     <p>
+      1 存在空闲inode
+      <br/>
+      2 目录数要少于上一个块组备选项,
+      <br/>
+      3 块组freeinode数不小于average
+      <br/>
+      4 块组free block数不小于average
+     </p>
+    </blockquote>
+   </li>
+   <li>
+    <p>
+     对于非第一级目录：
+    </p>
+    <blockquote>
+     <p>
+      1 尽量和父目录在同一个块组下
+      <br/>
+      2 debt max_debt = 255
+     </p>
+    </blockquote>
+   </li>
+  </ul>
+  <h2 id="_3">
+   解析目录
+  </h2>
+  <p>
+   命令查看文件所在块
+  </p>
+  <blockquote>
+   <p>
+    ll -ai;
+    <br/>
+    debugfs /dev/loop0;
+    <br/>
+    stat
+    <num>
+    </num>
+   </p>
+  </blockquote>
+  <h3 id="_4">
+   手工解析目录
+  </h3>
+  <h4 id="_5">
+   查找所在块
+  </h4>
+  <ul>
+   <li>
+    确定所在group
+   </li>
+   <li>
+    从group_desc中定位inode table
+   </li>
+   <li>
+    inode_table大小为128byte，(inode-first inode of this block)*128 + inode_table
+   </li>
+   <li>
+    i_block偏移量为40
+    <blockquote>
+     <p>
+      struct ext2_dir_entry_2 {
+      <br/>
+      __le32    inode;            /
+      <em>
+       Inode number
+      </em>
+      /
+      <br/>
+      __le16    rec_len;        /
+      <em>
+       Directory entry length
+      </em>
+      /
+      <br/>
+      __u8    name_len;        /
+      <em>
+       Name length
+      </em>
+      /
+      <br/>
+      __u8    file_type;
+      <br/>
+      char    name[];            /
+      <em>
+       File name, up to EXT2_NAME_LEN
+      </em>
+      /
+      <br/>
+      };
+      <br/>
+      enum {
+      <br/>
+      EXT2_FT_UNKNOWN        = 0,
+      <br/>
+      EXT2_FT_REG_FILE    = 1,
+      <br/>
+      EXT2_FT_DIR        = 2,
+      <br/>
+      EXT2_FT_CHRDEV        = 3,
+      <br/>
+      EXT2_FT_BLKDEV        = 4,
+      <br/>
+      EXT2_FT_FIFO        = 5,
+      <br/>
+      EXT2_FT_SOCK        = 6,
+      <br/>
+      EXT2_FT_SYMLINK        = 7,
+      <br/>
+      EXT2_FT_MAX
+      <br/>
+      };
+     </p>
+    </blockquote>
+   </li>
+  </ul>
+  <p>
+   <img alt="" src="http://blog.chinaunix.net/attachment/201208/11/24774106_13446861649HG4.jpg"/>
+  </p>
+  <p>
+   注意：
+   <br/>
+   1 文件名按4个字节对齐，不足的补0.
+   <br/>
+   2 从当前条目的rec_len的末尾到下一个
+   <strong>
+    合法（未删除）
+   </strong>
+   条目rec_len末尾的偏移量
+  </p>
+  <h2 id="_6">
+   文件删除
+  </h2>
+  <p>
+   文件删除时将文件inode改成0，last rec_len=last rec_len+this rec_len（即上文中“合法”）
+   <br/>
+   释放inode
+  </p>
+  <h2 id="_7">
+   文件恢复
+  </h2>
+  <p>
+   命令恢复
+  </p>
+  <blockquote>
+   <p>
+    1 通过debugfs的lsdel命令找到你删掉文件的inode。
+    <br/>
+    2 通过debugfs 找到inode对应的block位置
+    <br/>
+    3 dd 读取对应block的内容到临时文件。
+   </p>
+  </blockquote>
+  <h2 id="ext4-inode">
+   ext4 inode的改变
+  </h2>
+  <blockquote>
+   <p>
+    EXT4与EXT2、EXT3等传统Unix文件系统最大的区别在于使用了extents而不是间接块（inefficient indirect block）来标记文件内容。extent相似于NTFS文件系统中的运行(run)，本质上他们指示了组成extent的一系列文件块的起始地址、数量。一个文件可能由多段extent组成，但是EXT4尽可能保证文件连续存放
+   </p>
+  </blockquote>
+  <p>
+   因为EXT4试用了extent而不是块指向文件的内容，从第40到99这60个字节，用了保存extent信息而不再是块指针(block pointers)
+  </p>
+  <blockquote>
+   <p>
+    Bytes 40-41: Magic number
+    <br/>
+    42-43: Number of extents
+    <br/>
+    44-45: Max number of extents
+    <br/>
+    46-47: Depth of tree
+    <br/>
+    48-51: Generation ID
+    <br/>
+    Bytes 52-55: Logical block number
+    <br/>
+    56-57: Number of blocks in extent
+    <br/>
+    58-59: Upper 16 bits of physical block address
+    <br/>
+    60-63: Lower 32 bits of physical block address
+   </p>
+  </blockquote>
+  <hr/>
+  <p>
+   参考：bean 《深入ext2 文件系统》
+   <br/>
+   <a href="http://computer-forensics.sans.org/blog/2010/12/20/digital-forensics-understanding-ext4-part-1-extents">
+    understanding-ext4-part-1-extents
+   </a>
+  </p>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.1/highlight.min.js">
+  </script>
+  <script>
+   hljs.initHighlightingOnLoad();
+  </script>
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript">
+  </script>
+  <script type="text/javascript">
+   MathJax.Hub.Config({"showProcessingMessages" : false,"messageStyle" : "none","tex2jax": { inlineMath: [ [ "$", "$" ] ] }});
+  </script>
+ </body>
+</html>

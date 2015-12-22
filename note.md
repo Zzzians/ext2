@@ -119,6 +119,7 @@ struct ext2_group_desc
 
 ##文件删除
 文件删除时将文件inode改成0，last rec_len=last rec_len+this rec_len（即上文中“合法”）
+释放inode
 
 ##文件恢复
 命令恢复

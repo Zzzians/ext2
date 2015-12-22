@@ -1,0 +1,10 @@
+#include <stdio.h>
+main()
+{FILE *fp=fopen("bean3","rb+");
+ fseek(fp,2,SEEK_SET);
+ char buffer[1];
+ buffer[0]=0x66;
+ fwrite(buffer,1,1,fp);
+ fclose(fp);
+
+}
