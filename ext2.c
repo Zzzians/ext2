@@ -35,8 +35,11 @@ struct dir parsedir()
 
 }
 void writeblock(int block,char *buffer,int size)
-{fseek(fp,bz*block,SEEK_SET);
- fwrite(buffer,size,1,fp);
+{char out[bz];
+ memset(out,0,bz);
+ memcpy(out,buffer,size);
+ fseek(fp,bz*block,SEEK_SET);
+ fwrite(out,bz,1,fp);
 }
 int inodeoffset(int inode)
 {int num=inode/ipg;
@@ -83,7 +86,7 @@ void echo(int inode,char *buffer)
 
  }
  fwrite(sizet,1,4,fp);
- 
+ //printf("%d",(int)strlen(buffer));
  //printf("%X %X",blocks[0],off);
 }
 void mkdir(int inode,char *name)
@@ -125,6 +128,7 @@ int itob(int *blocks,int inode)//inode to block
 
 void dir(int block)
 {fseek(fp,block*bz,SEEK_SET);
+ printf("%X",0x400*block);
  while(1){
    struct dir tmpdir=parsedir();
    if(tmpdir.inode)printf("%6d: %12d%12d %12s\n",tmpdir.inode,tmpdir.rec_len,tmpdir.file_type,tmpdir.name);
@@ -144,7 +148,7 @@ void backup(int inode)
    if(i==0)fseek(fp,blocks[0]*bz,SEEK_SET);
    else fseek(fp,(blocks[i]-blocks[i-1]-1)*bz,SEEK_CUR);
    fread(buffer,bz,1,fp);
-   printf("%s",buffer);
+   //printf("%s",buffer);
    fwrite(buffer,bz,1,bu);
 
  }
@@ -187,7 +191,7 @@ main(int argc, char** argv)
  fp=fopen("bean3","r+");
  if(strcmp(argv[1],"ls")==0)ls(ctoi(argv[2]));
  if(strcmp(argv[1],"cat")==0)cat(ctoi(argv[2]));
- if(strcmp(argv[1],"back")==0)backup(ctoi(argv[2]));
+ if(strcmp(argv[1],"backup")==0)backup(ctoi(argv[2]));
  if(strcmp(argv[1],"echo")==0)echo(ctoi(argv[3]),argv[2]);
 
 }
